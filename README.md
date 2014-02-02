@@ -28,3 +28,9 @@ password = "yourpassword!"
 # configure this array with part number of the items you wish to monitor
 productsToCheck = ["CMSA16GX3M2A1600C11", "MZ-7TE1T0BW"]
 ```
+
+Constraints
+---
+
+ - Out-of-the-box support for parsing shopbot.ca only.
+ - Other email providers are untested; change the smtp gateway address to use an alternate provider.
