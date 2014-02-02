@@ -29,6 +29,13 @@ password = "yourpassword!"
 productsToCheck = ["CMSA16GX3M2A1600C11", "MZ-7TE1T0BW"]
 ```
 
+Cron/Scheduling
+---
+
+A simple twice-a-day cron schedule might look something like this:
+
+    * 0,12 * * * "python ~/Downloads/shopbot-watcher/shopbot.py"
+
 Constraints
 ---
 
