@@ -35,6 +35,8 @@ Cron/Scheduling
 A simple twice-a-day cron schedule might look something like this:
 
     * 0,12 * * * "python ~/Downloads/shopbot-watcher/shopbot.py"
+    
+Working on OSX? Use a tool like [LaunchControl](http://www.soma-zone.com/download/) to schedule scripts.
 
 Constraints
 ---
