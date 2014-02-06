@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import re, requests, codecs, os, time, smtplib, sys
 from bs4 import BeautifulSoup
 
