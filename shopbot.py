@@ -40,12 +40,14 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 
 	lowestprice = min(prices)
 
-	with open("shopbot-"+model+".txt", "a") as f:
+	thisfolder = os.path.dirname(os.path.realpath(__file__)) + "/"
+
+	with open(thisfolder + "shopbot-"+model+".txt", "a") as f:
 		f.write(lowestprice + "\n")
 
 	f.close
 
-	with open("shopbot-"+model+".txt") as f:
+	with open(thisfolder + "shopbot-"+model+".txt") as f:
 		pricehistory = f.readlines()
 
 	f.close
@@ -56,7 +58,7 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 		if float(prevlowestprice) > float(lowestprice):
 			print "New lower price found for " + model + ": $" + lowestprice
 			if not os.path.exists("shopbot"):
-				os.makedirs("shopbot")
+				os.makedirs(thisfolder + "shopbot")
 			#os.rename("shopbot-"+model+".txt", "shopbot/shopbot-"+model+".txt." + time.strftime("%Y%m%d_%H%M%S"))
 			
 			subject = "Woo! $" + lowestprice + " for " + name
@@ -67,7 +69,7 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 		else:
 			print "No price changes were found for " + model + "."
 	else:
-		print "(Re)setting price list for " + model + ". This is either the first time checking for the product or a lower price was previously found."
+		print "(Re)setting price list for " + model + "This is either the first time checking for the product or the price increased."
 
 # ----------- DO NOT EDIT ANYTHING ABOVE THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
 
