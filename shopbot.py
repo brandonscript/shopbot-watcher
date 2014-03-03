@@ -69,7 +69,7 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 		else:
 			print "No price changes were found for " + model + "."
 	else:
-		print "(Re)setting price list for " + model + "This is either the first time checking for the product or the price increased."
+		print "(Re)setting price list for " + model + ". This is either the first time checking for the product or the price increased."
 
 # ----------- DO NOT EDIT ANYTHING ABOVE THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
 
