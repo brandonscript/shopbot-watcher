@@ -1,15 +1,51 @@
 #!/usr/bin/env python
-import re, requests, codecs, os, time, smtplib, sys
-from bs4 import BeautifulSoup
 
-def notify(fromname, fromemail, toname, toemail, subject, body, password):
+import re, requests, codecs, os, time, smtplib, sys, locale
+from bs4 import BeautifulSoup
+locale.setlocale(locale.LC_ALL, 'en_CA.UTF-8')
+
+# ---------------------- BEGIN CONFIGURATION - YOU CAN EDIT THESE PARTS! ------------------------- #
+
+fromname = "Shopbot Watcher" # This will be the display name for notification emails
+fromemail = "youremail@gmail.com" # The email address you're sending from. If using gmail, this must be your login email
+toname = "Your Name" # Display name for the recipient (usually you)
+toemail = "youremail@gmail.com" # The recipient's email address (usually your email)
+password = "yourP@ssw0rd" # Your gmail password
+
+modelNumbersToCheck = ["CMSA16GX3M2A1600C11", "MZ-7TE250BW", "9000186", "RT-AC68U", "CT2K8G3S160BM 16GB", "ST4000VN000", "CT240M500SSD1", "WD40EFRX", "MZ-7TE1T0BW"]
+priceDropThreshold = 1 # Minimum number, in dollars, for price to have dropped before sending notification email
+
+# ----------- DO NOT EDIT ANYTHING BELOW THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
+
+class Product(object):
+	def __init__(self, model, name, img, price):
+		self.model = model
+		self.name = name
+		self.img = img
+		self.prices = []
+
+	def addPrice(self, price):
+		self.prices.append(float(price))
+
+	def addPrices(self, prices):
+		self.prices.extend(map(float, prices))
+
+def moneyFromFloat(price):
+	return locale.currency(price)
+
+def floatFromMoney(string):
+	return '%.2f' % float(re.sub(r'[\$,a-z\s]', r'', str(string), re.I))
+
+def sanitizeName(name):
+	return re.sub(r'( - \[.*?\])', r'', str(name), re.I)
+
+def notify(subject, body):
 	fromaddr = fromname+" <"+fromemail+">"
 	toaddrs = [toname+" <"+toemail+">"]
 	msg = "From: "+fromaddr+"\nTo: "+toemail+"\nMIME-Version: 1.0\nContent-type: text/plain\nSubject: "+subject+"\n"+body
 
 	# Credentials (if needed)
 	username = fromemail
-	password = password
 
 	# The actual mail send
 	try:
@@ -22,65 +58,53 @@ def notify(fromname, fromemail, toname, toemail, subject, body, password):
 	except smtplib.SMTPException:
 		print "FAIL: Email notificaiton failed to send"       
 
-def checkProduct(m, fromname, fromemail, toname, toemail, password):
-	r = requests.get("http://www.shopbot.ca/m/?m=" + m)
+def checkProduct(model):
+
+	#setup
+	currentFolder = os.path.dirname(os.path.realpath(__file__)) + "/shopbot_history/"
+	if not os.path.exists("shopbot_history"):
+		os.makedirs(currentFolder)
+	priceHistoryFile = currentFolder + "shopbot-"+model+".txt"
+
+	#url to call
+	r = requests.get("http://www.shopbot.ca/m/?m=" + model)
 	html = r.text.encode('utf-8')
 	soup = BeautifulSoup(html)
-	alt = soup.findAll("li", { "class" : "image" })[0].img["alt"]
-	name = re.sub(r'^.*?alt=[\"](.*?)[\"].*?$', r'\1', str(alt), re.M)
-	#img = re.sub(r'^.*?src=[\"](.*?)[\"].*?$', r'\1', str(imgdata.img), re.M)
-	model = soup.h1(text=True)[0]
-	pricedata = soup.findAll("div", { "class" : "price" }, text=True)
-	prices = []
-	for x in pricedata:
-		prices.append(str('%.2f' % float(re.sub(r'\$(.*)$', r'\1', str(x.span.text)))))
 
-	lowestprice = min(prices)
+	#begin scrape
+	product = Product(soup.h1(text=True)[0], sanitizeName(soup.findAll("li", { "class" : "image" })[0].img["alt"]), soup.findAll("li", { "class" : "image" })[0].img["src"], [])
+	for x in soup.findAll("div", { "class" : "price" }, text=True):
+		product.addPrice(floatFromMoney(x.span.text))
 
-	thisfolder = os.path.dirname(os.path.realpath(__file__)) + "/"
+	print product.name + ":"
 
-	with open(thisfolder + "shopbot-"+model+".txt", "a") as f:
-		f.write(lowestprice + "\n")
-
-	f.close
-
-	with open(thisfolder + "shopbot-"+model+".txt") as f:
-		pricehistory = f.readlines()
-
-	f.close
-
-	print "Lowest price for " + model + " is currently $" + lowestprice
-
-	if len(pricehistory) > 1:
-		prevlowestprice = min(pricehistory)
-
-		if float(prevlowestprice) > float(lowestprice):
-			print "New lower price found for " + model + ": $" + lowestprice
-			if not os.path.exists("shopbot"):
-				os.makedirs(thisfolder + "shopbot")
-			#os.rename("shopbot-"+model+".txt", "shopbot/shopbot-"+model+".txt." + time.strftime("%Y%m%d_%H%M%S"))
-			
-			subject = "Woo! $" + lowestprice + " for " + name
-			body = "\n\n" + model + " -- (" + name + ") dropped in price! It's now $" + lowestprice + ".\n\nLink: http://www.shopbot.ca/m/?m=" + model + "\n"
-
-			notify(fromname, fromemail, toname, toemail, subject, body, password) 
-
-		else:
-			print "No price changes were found for " + model + ".\n"
-	else:
-		print "(Re)setting price list for " + model + ". This is either the first time checking for the product or the price increased.\n"
+	if os.path.exists(priceHistoryFile):
+		with open(priceHistoryFile, "r") as f:
+			lines = f.readlines()
+			previousPrice = float(lines[-1])
+			f.close()
 		
-# ----------- DO NOT EDIT ANYTHING ABOVE THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
+		if (previousPrice == min(product.prices)):
+			print "\tNo price changes detected. Currently: " + moneyFromFloat(min(product.prices)) + "\n"
 
-fromname = "Shopbot Watcher"
-fromemail = "yourgmailaccount@gmailorcustomdomain.com" # configure your email address here
-toname = "Your Name" # configure the recipient name here
-toemail = "recipient@email.com" # configure the recipient email address here - might be the same as fromemail
-password = "yourpassword!"
+		elif (previousPrice > min(product.prices)):
+			print "\tNew lower price detected! Currently: " + moneyFromFloat(min(product.prices)) + "\n"
+			if (previousPrice - priceDropThreshold > min(product.prices)):
+				subject = "Woo! " + moneyFromFloat(min(product.prices)) + " for " + product.model
+				body = "\n\n" + product.name + " has dropped in price! It's now: \n\n" + moneyFromFloat(min(product.prices)) + ".\n\nLink: http://www.shopbot.ca/m/?m=" + model + "\n"
+				notify(subject, body)
 
-productsToCheck = ["CMSA16GX3M2A1600C11", "MZ-7TE1T0BW"] # configure this array with part number of the items you wish to monitor
+		elif (previousPrice < min(product.prices)):
+			print "\tPrice increase. Currently: " + moneyFromFloat(min(product.prices)) + "\n"
+		
+		with open(priceHistoryFile, "a") as f:
+			f.write(str(min(product.prices)) + "\n")
+			f.close()
+	else:
+		with open(priceHistoryFile, "a") as f:
+			f.write(str(min(product.prices)) + "\n")
+			f.close()
+		print "\tCreated history file. Run this script again to check for price changes.\n"
 
-# ----------- DO NOT EDIT ANYTHING BELOW THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
-
-for p in productsToCheck:
-	checkProduct(p, fromname, fromemail, toname, toemail, password)
+for model in modelNumbersToCheck:
+	checkProduct(model)
