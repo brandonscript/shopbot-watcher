@@ -26,17 +26,14 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 	r = requests.get("http://www.shopbot.ca/m/?m=" + m)
 	html = r.text.encode('utf-8')
 	soup = BeautifulSoup(html)
-	imgdata = soup.find("div", "col-img")
-	name = re.sub(r'^.*?alt=[\"](.*?)[\"].*?$', r'\1', str(imgdata.img), re.M)
-	img = re.sub(r'^.*?src=[\"](.*?)[\"].*?$', r'\1', str(imgdata.img), re.M)
+	alt = soup.findAll("li", { "class" : "image" })[0].img["alt"]
+	name = re.sub(r'^.*?alt=[\"](.*?)[\"].*?$', r'\1', str(alt), re.M)
+	#img = re.sub(r'^.*?src=[\"](.*?)[\"].*?$', r'\1', str(imgdata.img), re.M)
 	model = soup.h1(text=True)[0]
-	pricedata = soup.find_all("div", "price", text=True)
-	#print name
-	#print img
-	#print model
+	pricedata = soup.findAll("div", { "class" : "price" }, text=True)
 	prices = []
 	for x in pricedata:
-		prices.append(re.sub(r'^.*?data-price=[\"\']([\d.]+)[\"\'].*$', r'\1', str(x)))
+		prices.append(str('%.2f' % float(re.sub(r'\$(.*)$', r'\1', str(x.span.text)))))
 
 	lowestprice = min(prices)
 
@@ -52,6 +49,8 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 
 	f.close
 
+	print "Lowest price for " + model + " is currently $" + lowestprice
+
 	if len(pricehistory) > 1:
 		prevlowestprice = min(pricehistory)
 
@@ -62,15 +61,15 @@ def checkProduct(m, fromname, fromemail, toname, toemail, password):
 			#os.rename("shopbot-"+model+".txt", "shopbot/shopbot-"+model+".txt." + time.strftime("%Y%m%d_%H%M%S"))
 			
 			subject = "Woo! $" + lowestprice + " for " + name
-			body = "\n\n" + model + " -- (" + name + ") dropped in price! It's now $" + lowestprice + ".\n\n" + "Link: http://www.shopbot.ca/m/?m=" + model
+			body = "\n\n" + model + " -- (" + name + ") dropped in price! It's now $" + lowestprice + ".\n\nLink: http://www.shopbot.ca/m/?m=" + model + "\n"
 
 			notify(fromname, fromemail, toname, toemail, subject, body, password) 
 
 		else:
-			print "No price changes were found for " + model + "."
+			print "No price changes were found for " + model + ".\n"
 	else:
-		print "(Re)setting price list for " + model + ". This is either the first time checking for the product or the price increased."
-
+		print "(Re)setting price list for " + model + ". This is either the first time checking for the product or the price increased.\n"
+		
 # ----------- DO NOT EDIT ANYTHING ABOVE THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
 
 fromname = "Shopbot Watcher"
