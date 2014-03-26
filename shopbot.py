@@ -13,7 +13,7 @@ toemail = "youremail@gmail.com" # The recipient's email address (usually your em
 password = "yourP@ssw0rd" # Your gmail password
 
 modelNumbersToCheck = ["CMSA16GX3M2A1600C11", "MZ-7TE250BW", "9000186", "RT-AC68U", "CT2K8G3S160BM 16GB", "ST4000VN000", "CT240M500SSD1", "WD40EFRX", "MZ-7TE1T0BW"]
-priceDropThreshold = 1 # Minimum number, in dollars, for price to have dropped before sending notification email
+priceDropThreshold = 15 # Minimum number, in dollars, for price to have dropped before sending notification email
 
 # ----------- DO NOT EDIT ANYTHING BELOW THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ------------ #
 
@@ -54,7 +54,7 @@ def notify(subject, body):
 		server.login(username,password)
 		server.sendmail(fromaddr, toaddrs, msg)
 		server.quit()       
-		print "Email notification sent"
+		print "\t>> Email notification sent\n"
 	except smtplib.SMTPException:
 		print "FAIL: Email notificaiton failed to send"       
 
@@ -88,7 +88,7 @@ def checkProduct(model):
 			print "\tNo price changes detected. Currently: " + moneyFromFloat(min(product.prices)) + "\n"
 
 		elif (previousPrice > min(product.prices)):
-			print "\tNew lower price detected! Currently: " + moneyFromFloat(min(product.prices)) + "\n"
+			print "\tNew lower price detected! Currently: " + moneyFromFloat(min(product.prices))
 			if (previousPrice - priceDropThreshold > min(product.prices)):
 				subject = "Woo! " + moneyFromFloat(min(product.prices)) + " for " + product.model
 				body = "\n\n" + product.name + " has dropped in price! It's now: \n\n" + moneyFromFloat(min(product.prices)) + ".\n\nLink: http://www.shopbot.ca/m/?m=" + model + "\n"
